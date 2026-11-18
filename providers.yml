@@ -1,0 +1,521 @@
+# SINGLE SOURCE OF TRUTH. Catalog pages, router/litellm.yaml and configs/ are generated from this file.
+# After editing: uv run python scripts/gen_catalog.py && uv run python scripts/gen_router.py
+#
+# Rules (see AGENTS.md):
+#   - limits_source must be the provider's OWN page that shows the limits; last_verified is the day you read it.
+#   - trains_on_prompts: "yes" | "no" | "opt-out" | "unknown"  (quote it: bare yes/no become booleans in YAML)
+#   - free/private lane only uses providers with trains_on_prompts "no".
+#
+# Field reference:
+#   kind:       provider | inference | aggregator | local
+#   free_type:  permanent | renewable-credit | trial | keyless | local
+#   status:     active | unclear | retired
+#   router.key_env       env var in router/.env holding this provider's key (omit for keyless/local)
+#   router.base_url_env  env var holding the full base URL when it contains an account id
+#   router.priority      lower = earlier in every lane it joins
+#   models[].lanes       optional: restrict this model to these lanes
+#   models[].litellm_model  optional: full LiteLLM model string (default "openai/<id>")
+
+- id: groq
+  name: Groq
+  kind: inference
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.groq.com/openai/v1
+  signup_url: https://console.groq.com/keys
+  docs_url: https://console.groq.com/docs/rate-limits
+  limits_source: https://console.groq.com/docs/rate-limits
+  limits: {rpm: 30, rpd: 1000, tpm: 8000, tpd: 200000, text: "Per model, shared by all keys in one organization. 429 responses carry retry-after."}
+  trains_on_prompts: "no"
+  trains_source: https://console.groq.com/docs/legal/services-agreement
+  commercial_use: "yes"
+  models:
+    - {id: openai/gpt-oss-120b, context: 131072, tools: true, vision: false}
+    - {id: qwen/qwen3.8-27b, context: 131072, tools: true, vision: true}
+    - {id: openai/gpt-oss-20b, context: 131072, tools: true, vision: false}
+  router: {include: true, priority: 10, key_env: GROQ_API_KEY, lanes: [coding, fast, private]}
+  upstream: {mnfst: Groq, mv: groq-free}
+  last_verified: 2026-11-19
+  notes: "Fastest free host. The safeguard classifier models have much lower limits (3 RPM) and are left out."
+
+- id: gemini
+  name: Google AI Studio (Gemini API)
+  kind: provider
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "Unpaid-tier terms differ in the EEA, Switzerland and the UK; read the terms page before use there."
+  api: openai
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  signup_url: https://aistudio.google.com/apikey
+  docs_url: https://ai.google.dev/gemini-api/docs/openai
+  limits_source: https://ai.google.dev/gemini-api/docs/rate-limits
+  limits: {text: "Per project and per model. Google publishes which models are free on the pricing page; exact RPM/RPD show inside AI Studio after sign-in."}
+  trains_on_prompts: "yes"
+  trains_source: https://ai.google.dev/gemini-api/terms
+  commercial_use: "yes"
+  models:
+    - {id: gemini-3.8-flash, context: 1048576, tools: true, vision: true}
+    - {id: gemini-3.6-flash, context: 1048576, tools: true, vision: true}
+    - {id: gemini-3.5-flash-lite, context: 1048576, tools: true, vision: true}
+    - {id: gemini-3.1-flash-lite, context: 1048576, tools: true, vision: true}
+    - {id: gemma-4-31b-it, context: 262144, tools: false, vision: true}
+  router: {include: true, priority: 20, key_env: GEMINI_API_KEY, lanes: [coding, fast]}
+  upstream: {mnfst: Google Gemini, mv: google-ai-studio}
+  last_verified: 2026-11-19
+  notes: "Best free context window (1M). Free-tier prompts are used to improve Google products: never send private code or client data. Gemini 2.5 ids are limited to existing users."
+
+- id: cerebras
+  name: Cerebras Inference
+  kind: inference
+  free_type: trial
+  status: active
+  card_required: true
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.cerebras.ai/v1
+  signup_url: https://cloud.cerebras.ai
+  docs_url: https://inference-docs.cerebras.ai
+  limits_source: https://www.cerebras.ai/pricing
+  limits: {rpm: 5, text: "Trial: $5 of credit for 30 days; needs a verified payment method. gpt-oss-120b 5 RPM, qwen-3.8-27b 300 RPM."}
+  trains_on_prompts: "unknown"
+  trains_source: ""
+  commercial_use: "unknown"
+  models:
+    - {id: gpt-oss-120b, context: null, tools: true, vision: false}
+    - {id: qwen-3.8-27b, context: null, tools: true, vision: false}
+  router: {include: true, priority: 25, key_env: CEREBRAS_API_KEY, lanes: [fast]}
+  upstream: {mnfst: "", mv: cerebras}
+  last_verified: 2026-11-19
+  notes: "Very fast, but a trial: once the credit is spent the router skips it."
+
+- id: openrouter
+  name: OpenRouter (:free models)
+  kind: aggregator
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://openrouter.ai/api/v1
+  signup_url: https://openrouter.ai/settings/keys
+  docs_url: https://openrouter.ai/docs/faq
+  limits_source: https://openrouter.ai/docs/api_reference/limits
+  limits: {rpm: 20, rpd: 50, text: "20 RPM; 50 free-model requests per UTC day, or 1000 per day once 10 credits have been bought (all-time)."}
+  trains_on_prompts: "opt-out"
+  trains_source: https://openrouter.ai/docs/guides/privacy/provider-logging
+  commercial_use: "yes"
+  models:
+    - {id: google/gemma-4-31b-it:free, context: 262144, tools: false, vision: true}
+    - {id: nvidia/nemotron-3-ultra-550b-a55b:free, context: 1048576, tools: false, vision: false}
+    - {id: cohere/north-mini-code:free, context: null, tools: false, vision: false}
+    - {id: openrouter/free, context: null, tools: false, vision: false, lanes: []}
+  router: {include: true, priority: 30, key_env: OPENROUTER_API_KEY, lanes: [fast]}
+  upstream: {mnfst: OpenRouter, mv: openrouter-free}
+  last_verified: 2026-11-19
+  notes: "Turn on the training opt-out in account settings; OpenRouter then skips providers that train. The :free set rotates often. A 429 can come from the upstream host."
+
+- id: mistral
+  name: Mistral (Free mode)
+  kind: provider
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "EU company."
+  api: openai
+  base_url: https://api.mistral.ai/v1
+  signup_url: https://console.mistral.ai/api-keys
+  docs_url: https://docs.mistral.ai/admin/billing-usage/usage-limits
+  limits_source: https://docs.mistral.ai/admin/billing-usage/usage-limits
+  limits: {text: "Monthly allowance shared across Studio, API and Vibe CLI; the Free-mode amount is not published. Per-model RPS/TPM shown in the console."}
+  trains_on_prompts: "opt-out"
+  trains_source: https://help.mistral.ai/en/articles/347617-do-you-use-my-user-data-to-train-your-artificial-intelligence-models
+  commercial_use: "unknown"
+  models:
+    - {id: mistral-large-latest, context: null, tools: true, vision: false}
+    - {id: mistral-medium-latest, context: null, tools: true, vision: false}
+    - {id: mistral-embed, context: null, tools: false, vision: false, embedding: true}
+  router: {include: true, priority: 40, key_env: MISTRAL_API_KEY, lanes: [fast, embed]}
+  upstream: {mnfst: "", mv: mistral-free}
+  last_verified: 2026-11-19
+  notes: "Create the key under Studio › API Keys, not under Vibe CLI (that is a plan key)."
+
+- id: zai
+  name: Z.ai (GLM Flash models)
+  kind: provider
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "Zhipu AI (China). The api.z.ai endpoint is the international one."
+  api: openai
+  base_url: https://api.z.ai/api/paas/v4
+  signup_url: https://z.ai/manage-apikey/apikey-list
+  docs_url: https://docs.z.ai/guides/overview/pricing
+  limits_source: https://docs.z.ai/guides/overview/pricing
+  limits: {text: "GLM-4.7-Flash, GLM-4.5-Flash and GLM-4.6V-Flash have free input and output. No numeric rate limit is published."}
+  trains_on_prompts: "no"
+  trains_source: https://docs.z.ai/legal-agreement/terms-of-use
+  commercial_use: "unknown"
+  models:
+    - {id: glm-4.7-flash, context: 200000, tools: true, vision: false}
+    - {id: glm-4.5-flash, context: 128000, tools: true, vision: false}
+    - {id: glm-4.6v-flash, context: 128000, tools: false, vision: true}
+  router: {include: true, priority: 45, key_env: ZAI_API_KEY, lanes: [coding, fast, private]}
+  upstream: {mnfst: "Z AI (Zhipu AI)", mv: zai-glm}
+  last_verified: 2026-11-19
+  notes: "Coding-Plan keys use a different base URL (/api/coding/paas/v4); the free Flash models use the one above."
+
+- id: nvidia
+  name: NVIDIA NIM (build.nvidia.com)
+  kind: inference
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: true
+  region_notes: "Phone verification only works in supported countries."
+  api: openai
+  base_url: https://integrate.api.nvidia.com/v1
+  signup_url: https://build.nvidia.com
+  docs_url: https://docs.api.nvidia.com/nim/docs/product
+  limits_source: https://docs.api.nvidia.com/nim/docs/product
+  limits: {rpm: 40, text: "About 40 RPM per account on models marked Free Endpoint; ceilings vary by model and load."}
+  trains_on_prompts: "yes"
+  trains_source: https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b
+  commercial_use: "no"
+  models:
+    - {id: openai/gpt-oss-20b, context: 131072, tools: true, vision: false}
+    - {id: nvidia/nemotron-3-ultra-550b-a55b, context: 1048576, tools: false, vision: false}
+    - {id: google/gemma-4-31b-it, context: 262144, tools: false, vision: true}
+  router: {include: true, priority: 50, key_env: NVIDIA_API_KEY, lanes: [coding, fast]}
+  upstream: {mnfst: NVIDIA NIM, mv: nvidia-nim}
+  last_verified: 2026-11-19
+  notes: "A trial/evaluation service: inputs and outputs are recorded to improve NVIDIA models. Some new keys list models but get 404 on chat."
+
+- id: cloudflare
+  name: Cloudflare Workers AI
+  kind: inference
+  free_type: renewable-credit
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1
+  signup_url: https://dash.cloudflare.com/profile/api-tokens
+  docs_url: https://developers.cloudflare.com/workers-ai/
+  limits_source: https://developers.cloudflare.com/workers-ai/platform/pricing/
+  limits: {rpm: 300, text: "10,000 neurons per day free (resets 00:00 UTC), shared across all models; 300 RPM for text generation. Past the allowance calls fail."}
+  trains_on_prompts: "no"
+  trains_source: https://developers.cloudflare.com/workers-ai/platform/data-usage/
+  commercial_use: "yes"
+  models:
+    - {id: "@cf/openai/gpt-oss-120b", context: 128000, tools: false, vision: false}
+    - {id: "@cf/zai-org/glm-4.7-flash", context: 131072, tools: false, vision: false}
+    - {id: "@cf/meta/llama-4-scout-17b-16e-instruct", context: 131000, tools: false, vision: true}
+    - {id: "@cf/baai/bge-m3", context: null, tools: false, vision: false, embedding: true}
+  router: {include: true, priority: 60, key_env: CLOUDFLARE_API_TOKEN, base_url_env: CLOUDFLARE_API_BASE, lanes: [fast, private, embed]}
+  upstream: {mnfst: Cloudflare Workers AI, mv: cloudflare-workers-ai}
+  last_verified: 2026-11-19
+  notes: "Put your account id into CLOUDFLARE_API_BASE in router/.env. Some models need Workers Paid even with neurons left."
+
+- id: cohere
+  name: Cohere (trial keys)
+  kind: provider
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.cohere.com/compatibility/v1
+  signup_url: https://dashboard.cohere.com/api-keys
+  docs_url: https://docs.cohere.com/docs/models
+  limits_source: https://docs.cohere.com/docs/rate-limits
+  limits: {rpm: 20, text: "Trial keys: 1,000 API calls per month, 20 RPM for chat. Trial keys are for evaluation, not production or commercial use."}
+  trains_on_prompts: "yes"
+  trains_source: https://cohere.com/privacy
+  commercial_use: "no"
+  models:
+    - {id: command-a-03-2025, context: 256000, tools: true, vision: false}
+    - {id: north-mini-code-1-0, context: null, tools: false, vision: false}
+    - {id: command-a-vision-07-2025, context: 128000, tools: false, vision: true, lanes: []}
+  router: {include: true, priority: 70, key_env: COHERE_API_KEY, lanes: [fast]}
+  upstream: {mnfst: Cohere, mv: cohere}
+  last_verified: 2026-11-19
+  notes: "North Mini Code is free on trial and production keys until its own rate limit."
+
+- id: requesty
+  name: Requesty (free plan)
+  kind: aggregator
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "EU data residency available (router.eu.requesty.ai)."
+  api: openai
+  base_url: https://router.requesty.ai/v1
+  signup_url: https://app.requesty.ai/sign-up
+  docs_url: https://docs.requesty.ai/quickstart
+  limits_source: https://www.requesty.ai/pricing
+  limits: {rpd: 200, text: "Free plan: free models only, 200 requests per day."}
+  trains_on_prompts: "yes"
+  trains_source: https://www.requesty.ai/privacy
+  commercial_use: "unknown"
+  models:
+    - {id: google/gemma-4-31b-it, context: null, tools: false, vision: true}
+    - {id: nvidia/nemotron-3-ultra-550b-a55b, context: null, tools: false, vision: false}
+  router: {include: false, priority: 80, key_env: REQUESTY_API_KEY, lanes: [fast]}
+  upstream: {mnfst: "", mv: requesty}
+  last_verified: 2026-11-19
+  notes: "Free-plan models are ones whose host trains on prompts. Off in the default chain; set router.include: true to add it."
+
+- id: llm7
+  name: LLM7.io
+  kind: aggregator
+  free_type: permanent
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.llm7.io/v1
+  signup_url: https://dash.llm7.io
+  docs_url: https://docs.llm7.io/quickstart
+  limits_source: https://docs.llm7.io/limits
+  limits: {rpm: 60, text: "Free token: 1 RPS, 60 RPM, 250 requests/hour, 100K tokens per day on turbo models. May be cut without notice."}
+  trains_on_prompts: "unknown"
+  trains_source: ""
+  commercial_use: "unknown"
+  models:
+    - {id: codestral-latest, context: null, tools: false, vision: false}
+    - {id: mistral-Nemo-Instruct-2407, context: null, tools: false, vision: false}
+  router: {include: false, priority: 85, key_env: LLM7_API_KEY, lanes: [fast]}
+  upstream: {mnfst: LLM7.io, mv: llm7}
+  last_verified: 2026-11-19
+  notes: "The operator doesn't name its upstream hosts and has no published training policy, so it's off in the default chain."
+
+- id: kilo
+  name: Kilo Code gateway (anonymous)
+  kind: aggregator
+  free_type: keyless
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://api.kilo.ai/api/gateway
+  signup_url: https://kilo.ai
+  docs_url: https://kilo.ai/docs/gateway/authentication
+  limits_source: https://kilo.ai/docs/gateway/authentication
+  limits: {text: "Anonymous use: 200 requests per hour per IP, :free models and the kilo-auto/free router only."}
+  trains_on_prompts: "unknown"
+  trains_source: ""
+  commercial_use: "unknown"
+  models:
+    - {id: kilo-auto/free, context: null, tools: false, vision: false}
+  router: {include: false, priority: 90, lanes: []}
+  upstream: {mnfst: Kilo Code, mv: ""}
+  last_verified: 2026-11-19
+  notes: "A hosted third-party gateway, so it stays out of the router (usage rule 3). Fine for quick keyless tests."
+
+- id: ovh
+  name: OVHcloud AI Endpoints (anonymous)
+  kind: inference
+  free_type: keyless
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "EU-hosted."
+  api: openai
+  base_url: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
+  signup_url: https://endpoints.ai.cloud.ovh.net/
+  docs_url: https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-getting-started
+  limits_source: https://help.ovhcloud.com/csm/en-public-cloud-ai-endpoints-capabilities?id=kb_article_view
+  limits: {rpm: 2, text: "Anonymous: 2 requests per minute per IP and per model. API keys are paid (per token)."}
+  trains_on_prompts: "no"
+  trains_source: https://www.ovhcloud.com/en/public-cloud/ai-endpoints/
+  commercial_use: "unknown"
+  models:
+    - {id: gpt-oss-120b, context: 131072, tools: false, vision: false}
+    - {id: Qwen3.8-27B, context: null, tools: false, vision: true}
+    - {id: Meta-Llama-3_3-70B-Instruct, context: 131072, tools: false, vision: false}
+  router: {include: false, priority: 65, lanes: [private]}
+  upstream: {mnfst: OVHcloud AI Endpoints, mv: ovh-ai-endpoints}
+  last_verified: 2026-11-19
+  notes: "Anonymous calls must send no Authorization header, which the LiteLLM OpenAI client always sends, so it's not in the router. Call it directly from apps."
+
+- id: sarvam
+  name: Sarvam AI
+  kind: provider
+  free_type: trial
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "India-hosted; Indian-language models."
+  api: openai
+  base_url: https://api.sarvam.ai/v1
+  signup_url: https://dashboard.sarvam.ai
+  docs_url: https://docs.sarvam.ai
+  limits_source: https://www.sarvam.ai/api-pricing
+  limits: {rpm: 60, text: "₹100 one-time starter credit; 60 RPM on the starter tier."}
+  trains_on_prompts: "opt-out"
+  trains_source: ""
+  commercial_use: "yes"
+  models: []
+  router: {include: false, priority: 75, key_env: SARVAM_API_KEY, lanes: []}
+  upstream: {mnfst: "", mv: ""}
+  last_verified: 2026-11-19
+  notes: "Useful for Indian-language apps (translation, speech). Model ids aren't listed here yet."
+
+- id: ollama-cloud
+  name: Ollama Cloud
+  kind: inference
+  free_type: renewable-credit
+  status: unclear
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://ollama.com/v1
+  signup_url: https://ollama.com/settings/keys
+  docs_url: https://docs.ollama.com/cloud
+  limits_source: https://ollama.com/pricing
+  limits: {text: "A monthly starter allowance was announced, but the current pricing page describes pay-as-you-go. Check your account before relying on it."}
+  trains_on_prompts: "no"
+  trains_source: https://ollama.com/pricing
+  commercial_use: "unknown"
+  models: []
+  router: {include: false, priority: 95, key_env: OLLAMA_CLOUD_API_KEY, lanes: []}
+  upstream: {mnfst: "", mv: ollama-cloud}
+  last_verified: 2026-11-19
+  notes: ""
+
+- id: pollinations
+  name: Pollinations.AI (legacy text API)
+  kind: aggregator
+  free_type: keyless
+  status: unclear
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://text.pollinations.ai/openai
+  signup_url: https://pollinations.ai
+  docs_url: https://text.pollinations.ai/models
+  limits_source: https://text.pollinations.ai/models
+  limits: {text: "Legacy keyless host, one model (gpt-oss-20b). No current published rate limit. The new gen.pollinations.ai needs a key and credits."}
+  trains_on_prompts: "unknown"
+  trains_source: ""
+  commercial_use: "unknown"
+  models:
+    - {id: openai-fast, context: null, tools: false, vision: false}
+  router: {include: false, priority: 95, lanes: []}
+  upstream: {mnfst: "", mv: pollinations}
+  last_verified: 2026-11-19
+  notes: "Legacy only; may disappear."
+
+- id: huggingface
+  name: Hugging Face Inference Providers
+  kind: aggregator
+  free_type: renewable-credit
+  status: retired
+  card_required: false
+  phone_required: false
+  region_notes: ""
+  api: openai
+  base_url: https://router.huggingface.co/v1
+  signup_url: https://huggingface.co/settings/tokens
+  docs_url: https://huggingface.co/docs/inference-providers
+  limits_source: https://huggingface.co/docs/inference-providers/pricing
+  limits: {text: "Free accounts no longer get monthly inference credits (billing table lists None since about 2026-10-08)."}
+  trains_on_prompts: "unknown"
+  trains_source: ""
+  commercial_use: "unknown"
+  models: []
+  router: {include: false, priority: 99, lanes: []}
+  upstream: {mnfst: "", mv: huggingface-inference}
+  last_verified: 2026-11-19
+  notes: "Kept so people searching for it see that the free credit is gone."
+
+# ---------------------------------------------------------------- local (always the last hop)
+
+- id: ollama
+  name: Ollama (local)
+  kind: local
+  free_type: local
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "Runs on your machine; nothing leaves it."
+  api: openai
+  base_url: http://127.0.0.1:11434/v1
+  signup_url: https://ollama.com/download
+  docs_url: https://docs.ollama.com
+  limits_source: https://docs.ollama.com
+  limits: {text: "No quota. Speed depends on your CPU/GPU and RAM; on 8 GB RAM without a GPU stick to 1.5B–3B models."}
+  trains_on_prompts: "no"
+  trains_source: ""
+  commercial_use: "yes"
+  models:
+    - {id: "qwen2.5-coder:3b", context: 32768, tools: true, vision: false, litellm_model: "ollama_chat/qwen2.5-coder:3b"}
+    - {id: "llama3.2:3b", context: 131072, tools: true, vision: false, litellm_model: "ollama_chat/llama3.2:3b", lanes: [fast, private, local]}
+    - {id: nomic-embed-text, context: 8192, tools: false, vision: false, embedding: true, litellm_model: "ollama/nomic-embed-text"}
+  router: {include: true, priority: 99, base_url_env: OLLAMA_API_BASE, lanes: [coding, fast, private, embed, local]}
+  upstream: {mnfst: "", mv: ""}
+  last_verified: 2026-11-19
+  notes: "ollama pull qwen2.5-coder:3b llama3.2:3b nomic-embed-text"
+
+- id: llama-cpp
+  name: llama.cpp server (local)
+  kind: local
+  free_type: local
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "Runs on your machine."
+  api: openai
+  base_url: http://127.0.0.1:8080/v1
+  signup_url: https://github.com/ggml-org/llama.cpp
+  docs_url: https://github.com/ggml-org/llama.cpp/tree/master/tools/server
+  limits_source: https://github.com/ggml-org/llama.cpp/tree/master/tools/server
+  limits: {text: "No quota. Lowest memory use of the local options; good on CPU-only machines."}
+  trains_on_prompts: "no"
+  trains_source: ""
+  commercial_use: "yes"
+  models: []
+  router: {include: false, priority: 99, lanes: []}
+  upstream: {mnfst: "", mv: ""}
+  last_verified: 2026-11-19
+  notes: "llama-server -m model.gguf --port 8080 --jinja (the --jinja flag enables tool calling)."
+
+- id: lm-studio
+  name: LM Studio (local)
+  kind: local
+  free_type: local
+  status: active
+  card_required: false
+  phone_required: false
+  region_notes: "Runs on your machine."
+  api: openai
+  base_url: http://127.0.0.1:1234/v1
+  signup_url: https://lmstudio.ai
+  docs_url: https://lmstudio.ai/docs
+  limits_source: https://lmstudio.ai/docs
+  limits: {text: "No quota. Desktop app with a model browser and an OpenAI-compatible server."}
+  trains_on_prompts: "no"
+  trains_source: ""
+  commercial_use: "yes"
+  models: []
+  router: {include: false, priority: 99, lanes: []}
+  upstream: {mnfst: "", mv: ""}
+  last_verified: 2026-11-19
+  notes: ""

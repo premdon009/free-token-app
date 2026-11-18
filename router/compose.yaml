@@ -1,0 +1,33 @@
+# LiteLLM proxy, local only. Start: docker compose -f router/compose.yaml up -d
+#
+# Safety (AGENTS.md rule 5):
+#   - image pinned by digest to a release >= 7 days old: uv run python scripts/pin_image.py litellm
+#     never a moving tag (latest / main-stable); scripts/pin_image.py --check runs in CI
+#   - gets only the free-tier provider keys from router/.env; no cloud credentials, no home mount
+#   - host networking + --host 127.0.0.1: listens on loopback only and can reach a native Ollama
+#     on 127.0.0.1:11434 (Linux; on Docker Desktop use ports: ["127.0.0.1:4000:4000"] instead)
+name: free-token-router
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.109.0@sha256:26aecfb02fb17ac6590f0549478561f9fbb3f69314317320b2e32a21beed4006
+    command: ["--config", "/app/config.yaml", "--host", "127.0.0.1", "--port", "4000"]
+    network_mode: host
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      LITELLM_LOG: "WARNING"
+      LITELLM_TELEMETRY: "False"
+      NO_DOCS: "True"
+    volumes:
+      - ./litellm.yaml:/app/config.yaml:ro
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

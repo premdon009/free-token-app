@@ -1,0 +1,10 @@
+nav:
+  - index.md
+  - how-to-use.md
+  - Catalog: catalog
+  - Router: router
+  - Coding agents: agents
+  - Apps: apps
+  - Local models: local
+  - terms-and-privacy.md
+  - related.md

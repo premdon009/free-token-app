@@ -1,0 +1,17 @@
+# Secrets: provider keys live only here (mode 600), never committed
+router/.env
+.env
+.env.*
+!router/.env.example
+
+# Build and tooling
+site/
+.venv/
+__pycache__/
+*.pyc
+.cache/
+node_modules/
+examples/typescript/dist/
+
+# Local reports
+reports/
