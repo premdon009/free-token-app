@@ -9,7 +9,11 @@ aider, opencode, Codex) and the **Anthropic Messages API** (Claude Code). It's
     and the moving `latest` / `main-stable` Docker tags in October). So the image is pinned by
     digest to a release at least 7 days old, the container gets only free-tier provider keys, and it
     listens on `127.0.0.1` only. `scripts/pin_image.py` also skips any release covered by a
-    published LiteLLM security advisory. Still check the [LiteLLM security advisories](https://github.com/BerriAI/litellm/security)
+    published LiteLLM security advisory.
+
+    **Exception:** if the newest 7-day-old release has a *high* or *critical* advisory, waiting
+    would leave a known hole open. The script then pins the oldest release that fixes it, as long
+    as it's at least 24 hours old, and prints `EXCEPTION`. Still check the [LiteLLM security advisories](https://github.com/BerriAI/litellm/security)
     before you accept a version bump.
 
 ## Needs
@@ -29,7 +33,7 @@ cp router/.env.example router/.env && chmod 600 router/.env
 python3 -c "import secrets; print('sk-' + secrets.token_urlsafe(32))"   # paste as LITELLM_MASTER_KEY
 $EDITOR router/.env                                                      # add the keys you have
 
-# 2. pin the image (newest LiteLLM release that's at least 7 days old and has no advisory)
+# 2. pin the image (newest LiteLLM release ≥ 7 days old with no advisory; high/critical fixes ≥ 24 h)
 uv run python scripts/pin_image.py litellm
 uv run python scripts/pin_image.py --check --advisories
 

@@ -13,7 +13,7 @@
       "automerge": false,
       "labels": ["security-review"],
       "prBodyNotes": [
-        "LiteLLM had malicious releases in 2026. Before merging: check https://github.com/BerriAI/litellm/security for this version, and that it's at least 7 days old."
+        "LiteLLM had malicious releases in 2026. Before merging: check https://github.com/BerriAI/litellm/security for this version, and that it's at least 7 days old. For a high/critical advisory fix, run scripts/pin_image.py litellm instead: it allows a fixed release from 24 hours old."
       ]
     },
     {

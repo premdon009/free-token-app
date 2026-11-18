@@ -8,7 +8,11 @@
 LiteLLM shipped credential-stealing releases in 2026 (1.82.7, 1.82.8, 1.107.0 and the moving
 `latest` / `main-stable` tags). So: never a moving tag, never a release younger than 7 days,
 never a version on the blocklist below, and never a version covered by a published LiteLLM
-GitHub security advisory (checked live; fails closed if the advisories can't be fetched). Read https://github.com/BerriAI/litellm/security before
+GitHub security advisory (checked live; fails closed if the advisories can't be fetched).
+
+One exception: if the newest 7-day-old release has a HIGH or CRITICAL advisory, the script picks
+the oldest fixed release newer than it, provided that release is at least 24 hours old, and says so
+loudly. Read https://github.com/BerriAI/litellm/security before
 bumping, and let Renovate propose the bump as a PR you review.
 """
 
@@ -27,6 +31,10 @@ from _providers import ROOT
 
 COMPOSE = ROOT / "router" / "compose.yaml"
 MIN_AGE_DAYS = 7
+# Exception: if the newest 7-day-old release has a high/critical advisory, a younger fixed release
+# may be pinned, but never one younger than this (bad releases have been caught within hours).
+URGENT = {"high", "critical"}
+EXCEPTION_MIN_AGE = dt.timedelta(hours=24)
 BLOCKLIST = {"1.82.7", "1.82.8", "1.107.0"}
 MOVING = {"latest", "main-stable", "main-latest", "stable", "main"}
 ACCEPT = ", ".join([
@@ -84,8 +92,8 @@ def vtuple(v: str) -> tuple[int, ...]:
     return tuple(int(x) for x in re.findall(r"\d+", v)[:3])
 
 
-def advisories() -> list[tuple[str, list[tuple[str, tuple[int, ...]]]]]:
-    """[(ghsa_id, [(op, bound), ...])] for every pip advisory with an upper bound."""
+def advisories() -> list[tuple[str, str, list[tuple[str, tuple[int, ...]]]]]:
+    """[(ghsa_id, severity, [(op, bound), ...])] for every pip advisory with an upper bound."""
     headers = {"Accept": "application/vnd.github+json"}
     if os.environ.get("GITHUB_TOKEN"):
         headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
@@ -102,12 +110,12 @@ def advisories() -> list[tuple[str, list[tuple[str, tuple[int, ...]]]]]:
             for op, ver in re.findall(r"(<=|<)\s*([\w.\-]+)", vuln.get("vulnerable_version_range") or ""):
                 bounds.append((op, vtuple(ver)))
         if bounds:
-            out.append((adv.get("ghsa_id", "?"), bounds))
+            out.append((adv.get("ghsa_id", "?"), (adv.get("severity") or "unknown").lower(), bounds))
     return out
 
 
-def affected_by(version: str, advs) -> list[str]:
-    """Advisory ids that cover `version`.
+def affected_by(version: str, advs, severities: set[str] | None = None) -> list[str]:
+    """Advisory ids that cover `version` (only those with a severity in `severities`, if given).
 
     Advisories list one fixed release per release line ("< 1.108.6 | < 1.109.1"). A version is
     affected if it's below the bound for its own X.Y line, or if its line has no bound and it's
@@ -116,7 +124,9 @@ def affected_by(version: str, advs) -> list[str]:
     """
     v = vtuple(version)
     hits = []
-    for ghsa, bounds in advs:
+    for ghsa, severity, bounds in advs:
+        if severities and severity not in severities:
+            continue
         same = [(op, b) for op, b in bounds if b[:2] == v[:2]]
         if same:
             hit = any(v < b or (op == "<=" and v == b) for op, b in same)
@@ -127,7 +137,7 @@ def affected_by(version: str, advs) -> list[str]:
     return hits
 
 
-def litellm_release(version: str | None) -> tuple[str, dt.datetime]:
+def litellm_release(version: str | None, urgent_exception: bool = False) -> tuple[str, dt.datetime]:
     data, _ = get_json("https://pypi.org/pypi/litellm/json")
     now = dt.datetime.now(dt.timezone.utc)
     candidates = []
@@ -147,14 +157,41 @@ def litellm_release(version: str | None) -> tuple[str, dt.datetime]:
         if not match:
             raise SystemExit(f"litellm {version}: not on PyPI, yanked, pre-release or blocklisted")
         v, up = match[0]
-        if (now - up).days < MIN_AGE_DAYS:
-            raise SystemExit(f"litellm {v} is only {(now - up).days} days old (need {MIN_AGE_DAYS})")
+        if now - up < dt.timedelta(days=MIN_AGE_DAYS):
+            if not urgent_exception:
+                raise SystemExit(f"litellm {v} is only {(now - up).days} days old (need {MIN_AGE_DAYS}; "
+                                 "--urgent allows a fix for a high/critical advisory)")
+            if now - up < EXCEPTION_MIN_AGE:
+                raise SystemExit(f"litellm {v} is under {EXCEPTION_MIN_AGE} old, even with --urgent")
+            print(f"EXCEPTION to the {MIN_AGE_DAYS}-day rule (--urgent): litellm {v}")
         return v, up
-    old = [c for c in candidates if (now - c[1]).days >= MIN_AGE_DAYS and not affected_by(c[0], advs)]
-    old.sort(key=lambda c: tuple(int(x) for x in c[0].split(".")))
-    if not old:
+    def key(c):
+        return vtuple(c[0])
+
+    old_enough = sorted((c for c in candidates if now - c[1] >= dt.timedelta(days=MIN_AGE_DAYS)), key=key)
+    clean = [c for c in old_enough if not affected_by(c[0], advs)]
+    newest_old = old_enough[-1] if old_enough else None
+    urgent = affected_by(newest_old[0], advs, URGENT) if newest_old else []
+    if clean and not urgent:
+        return clean[-1]
+    if not urgent:
         raise SystemExit("no litellm release is both old enough and free of known advisories")
-    return old[-1]
+
+    # Exception: the newest 7-day-old release has a high/critical advisory. Waiting out the 7 days
+    # would leave a known hole open, so take the OLDEST fixed release newer than it (the smallest
+    # step, with the most time in the wild), as long as it's at least EXCEPTION_MIN_AGE old.
+    fixed = sorted((c for c in candidates
+                    if key(c) > key(newest_old) and not affected_by(c[0], advs)
+                    and now - c[1] >= EXCEPTION_MIN_AGE), key=key)
+    if not fixed:
+        raise SystemExit(f"litellm {newest_old[0]} has {', '.join(urgent)} and no fixed release is "
+                         f"{EXCEPTION_MIN_AGE.total_seconds() / 3600:.0f}h old yet; try again later")
+    v, up = fixed[0]
+    age_h = (now - up).total_seconds() / 3600
+    print(f"EXCEPTION to the {MIN_AGE_DAYS}-day rule: litellm {newest_old[0]} has high/critical "
+          f"advisories {', '.join(urgent)}; picking fixed release {v} ({age_h:.0f}h old). "
+          "Read the advisory and the release notes before you start the container.")
+    return v, up
 
 
 def pick_litellm_tag(all_tags: list[str], version: str) -> str:
@@ -198,6 +235,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("image", nargs="?", choices=sorted(IMAGES))
     ap.add_argument("--version", help="litellm: exact release (must be >= 7 days old)")
+    ap.add_argument("--urgent", action="store_true",
+                    help="with --version: allow a release 24h-7d old (fix for a high/critical advisory)")
     ap.add_argument("--tag", help="exact image tag (default: picked from the version)")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--advisories", action="store_true", help="with --check: also fail on advisories")
@@ -208,7 +247,7 @@ def main() -> int:
         ap.error("give an image name or --check")
     img = IMAGES[args.image]
     tok = token(img)
-    version, uploaded = litellm_release(args.version)
+    version, uploaded = litellm_release(args.version, args.urgent)
     tag = args.tag or pick_litellm_tag(tags(img, tok), version)
     if tag in MOVING:
         raise SystemExit(f"refusing moving tag {tag}")

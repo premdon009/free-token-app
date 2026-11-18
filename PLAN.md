@@ -46,6 +46,7 @@ uses it in telecom-sentinel's gateway design.
 **Security note:** LiteLLM shipped credential-stealing releases twice in 2026 (1.82.7/1.82.8 on
 2026-03-24; 1.107.0 and the `latest`/`main-stable` Docker tags on 2026-10-21). So:
 - Image pinned **by digest** to a release ≥ 7 days old that has a clean provenance record. Never `latest`.
+  Exception: a fix for a high/critical advisory may be pinned once it's ≥ 24 hours old.
 - Renovate proposes bumps; a human checks the advisory feed before merging.
 - The container gets **only the free-tier provider keys**: no cloud credentials, no other secrets,
   no home directory mount. Bound to `127.0.0.1`, master key required.
