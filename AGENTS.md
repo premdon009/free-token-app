@@ -15,12 +15,15 @@ agents and the owner's own apps. Public repo `premdon009/free-token-app`, site o
 | P3 | Coding-agent configs and pages | 🟡 built; not yet run through each agent |
 | P4 | App examples (Python, TypeScript) | 🟡 built; not yet run against the router |
 | P5 | Weekly automation, Renovate | ✅ done (first weekly run pending) |
+| P6 | Paid plans (`plans.yml` → `docs/paid/`), orchestration design, optional add-ons | 🟡 built; add-on token measurements wait for the live router (P2) |
 
 ## Rules (never break)
 
-1. `providers.yml` is the only source. Catalog pages, `router/litellm.yaml` and `configs/` are
-   generated; never edit them by hand.
-2. Every provider row needs `limits_source` (an official URL) and `last_verified`. Don't copy
+1. `providers.yml` (free tiers, router) and `plans.yml` (paid plans) are the only sources. Catalog
+   pages, `docs/paid/`, `router/litellm.yaml` and `configs/` are generated; never edit them by hand.
+   `plans.yml` never feeds the router.
+2. Every provider row needs `limits_source` (an official URL) and `last_verified`; every plan row
+   needs `pricing_source` and `last_verified`. Don't copy
    limits from another list without checking the provider's own page.
 3. One account per provider, within its terms. No key pools, multi-account rotation, resold
    keys or hosted third-party proxies in the default chain.
@@ -38,9 +41,10 @@ uv sync
 uv run mkdocs serve
 uv run python scripts/gen_catalog.py      # after editing providers.yml
 uv run python scripts/gen_router.py
+uv run python scripts/gen_plans.py       # after editing plans.yml
 uv run python scripts/check_links.py
 ```
 
 **Done means:** `mkdocs build --strict`, `gen_catalog.py --check`, `gen_router.py --check`,
-`check_links.py` (0 fail) and `uv lock --check` all pass. Then commit (conventional commits)
+`gen_plans.py --check`, `check_links.py` (0 fail) and `uv lock --check` all pass. Then commit (conventional commits)
 and push `main` after the owner's go.
