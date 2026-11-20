@@ -12,8 +12,11 @@ coding agents and your own apps.
   falls back from one provider to the next on 429s and errors.
 - **Agent configs** for Claude Code, Cline, aider, opencode and Codex, and app examples in Python
   and TypeScript.
+- **Paid plans**: subscriptions, pay-per-token prices and coding-tool quotas, for when free isn't
+  enough, plus a design for letting a strong model orchestrate cheap ones.
+- **Add-ons** (optional): Serena, Headroom, claude-mem and open-code-review, with when each helps or hurts.
 
-Everything comes from one file, [`providers.yml`](providers.yml).
+Free tiers and the router come from [`providers.yml`](providers.yml); paid plans from [`plans.yml`](plans.yml).
 
 ## Quick start
 
@@ -41,6 +44,7 @@ agentic coding.
 $EDITOR providers.yml                       # check the provider's own page; set last_verified
 uv run python scripts/gen_catalog.py
 uv run python scripts/gen_router.py
+uv run python scripts/gen_plans.py          # after editing plans.yml
 uv run python scripts/check_links.py
 uv run mkdocs build --strict
 ```

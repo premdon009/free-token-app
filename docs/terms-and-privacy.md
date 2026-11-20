@@ -31,6 +31,20 @@ and trial programmes record inputs and outputs. Each catalog row records this as
 - `free/coding` and `free/fast` include providers that train on prompts (Gemini, NVIDIA). Don't use
   them on code you aren't allowed to share.
 
+## Which work goes where
+
+Decide per repository, before you point an agent at it:
+
+| What the code or data is | Free lanes | Paid options | Never |
+|---|---|---|---|
+| **Open source**, or a throwaway repo | Any lane, `free/coding` included | Any | — |
+| **Private but not sensitive** (your own side project, internal tools) | `free/private` or `local` | Pay-per-token APIs or subscriptions whose terms say they don't train on API or business traffic | Lanes with 🔴 or ⚪ providers |
+| **Client data, personal data, secrets, regulated or real production data** | `local` only | Only a paid plan whose contract excludes training and limits retention, and only if you're allowed to share the data with that vendor at all | Every free lane; any add-on that ships context to a third party ([claude-mem](addons/claude-mem.md)'s observer, for example) |
+
+"Doesn't train" isn't "doesn't store": most providers keep prompts for a while for abuse monitoring.
+The [paid plans](paid/index.md) pages record each plan's training default; read the linked terms
+for retention.
+
 ## Retired or unclear free tiers
 
 - **GitHub Models**: closed to new users on 2026-06-16 and fully retired on 2026-07-30.

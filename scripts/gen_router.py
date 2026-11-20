@@ -237,15 +237,14 @@ def render_configs(rows: list[dict]) -> dict[str, str]:
     files["opencode.json"] = json.dumps(opencode, indent=2) + "\n"
     files["codex.toml"] = (
         f"# {GEN}\n"
-        "# Append to ~/.codex/config.toml, then run: codex --profile free\n"
+        "# Save as ~/.codex/free.config.toml (a profile file, Codex 0.134+), then run: codex --profile free\n"
+        'model_provider = "free-token"\n'
+        'model = "free/coding"\n\n'
         "[model_providers.free-token]\n"
         'name = "Free Token router (local)"\n'
         f'base_url = "{BASE}/v1"\n'
         'env_key = "LITELLM_MASTER_KEY"\n'
-        'wire_api = "responses"\n\n'
-        "[profiles.free]\n"
-        'model_provider = "free-token"\n'
-        'model = "free/coding"\n'
+        'wire_api = "responses"\n'
     )
     cline = {
         "_comment": f"{GEN} Enter these in Cline › Settings › API Provider.",

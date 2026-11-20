@@ -2,8 +2,11 @@ nav:
   - index.md
   - how-to-use.md
   - Catalog: catalog
+  - Paid plans: paid
+  - choosing-a-plan.md
   - Router: router
   - Coding agents: agents
+  - Add-ons: addons
   - Apps: apps
   - Local models: local
   - terms-and-privacy.md

@@ -1,0 +1,738 @@
+# SINGLE SOURCE for the paid section. docs/paid/*.md is generated from this file.
+# After editing: uv run python scripts/gen_plans.py
+#
+# This file NEVER feeds the router: router/litellm.yaml and configs/ come from providers.yml only.
+#
+# Rules (see AGENTS.md):
+#   - pricing_source must be the vendor's OWN pricing page; last_verified is the day you read it.
+#   - Every tier quotes its limits from the plan page. If the page doesn't say, write "not stated".
+#   - trains_on_prompts: "yes" | "no" | "opt-out" | "unknown"   (quote it: bare yes/no become booleans)
+#   - api_access:        "yes" | "no" | "limited" | "unknown"   (can the plan be used as an API key / through a router?)
+#   - Telecom-sentinel or any real data never goes to a plan whose trains_on_prompts is not "no".
+#
+# Field reference:
+#   kind:     subscription | payg | harness      (harness = coding-tool plan, page "Coding tools")
+#   status:   active | unclear | retired
+#   tiers[]:  name, usd_month, inr_month, models, limits (required), tools[]   (subscription, harness)
+#   models[]: id, role (orchestrator | worker), input, output (required, $ per 1M tokens),
+#             cached_input, context, tools (true/false)                         (payg)
+#   payg:     endpoint (openai | anthropic | both | native), base_url, fees
+#   optional: byok, terms_source, docs_url, region_notes, notes
+
+# ───────────────────────────── Pay per token ─────────────────────────────
+
+- id: anthropic-api
+  name: Anthropic API
+  vendor: Anthropic
+  kind: payg
+  status: active
+  endpoint: anthropic
+  base_url: https://api.anthropic.com
+  pricing_source: https://platform.claude.com/docs/en/about-claude/pricing
+  terms_source: https://www.anthropic.com/legal/commercial-terms
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: >-
+    Commercial terms say Anthropic "may not train models on Customer Content". Haiku 5.5's price is for
+    prompts up to 100K tokens; above that it is $0.50 input, $0.05 cached, $2.50 output.
+    Claude Code can run on this key instead of a subscription.
+  models:
+    - {id: claude-fable-5-2, role: orchestrator, input: 8, cached_input: 0.20, output: 40, context: 1000000, tools: true}
+    - {id: claude-opus-5-5, role: orchestrator, input: 4, cached_input: 0.20, output: 20, context: 1000000, tools: true}
+    - {id: claude-sonnet-5-5, role: orchestrator, input: 2, cached_input: 0.10, output: 10, context: 1000000, tools: true}
+    - {id: claude-haiku-5-5, role: worker, input: 0.10, cached_input: 0.01, output: 0.50, tools: true}
+
+- id: openai-api
+  name: OpenAI API
+  vendor: OpenAI
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.openai.com/v1
+  pricing_source: https://developers.openai.com/api/docs/pricing
+  terms_source: https://developers.openai.com/api/docs/guides/your-data
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: API data is not used for training by default. Abuse-monitoring logs are kept for 30 days.
+  models:
+    - {id: gpt-6.2-astra, role: orchestrator, input: 8, cached_input: 0.40, output: 40, tools: true}
+    - {id: gpt-6.2-sol, role: orchestrator, input: 2, cached_input: 0.10, output: 10, tools: true}
+    - {id: gpt-6-luna, role: worker, input: 0.10, cached_input: 0.01, output: 0.50, tools: true}
+
+- id: gemini-api
+  name: Gemini API (paid tier)
+  vendor: Google
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  pricing_source: https://aistudio.google.com/docs/pricing
+  terms_source: https://aistudio.google.com/docs/terms
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: >-
+    Only the paid tier keeps prompts out of training; the unpaid tier (the free catalog row) trains on them.
+    Gemini 3.1 Pro's price is for prompts up to 200K tokens; above that it is $4 input, $0.40 cached, $18 output.
+    Gemini 3.8 Flash's price is a launch price until 31 Dec 2026, then $1.50 input, $0.15 cached, $7.50 output.
+  models:
+    - {id: gemini-3.1-pro-preview, role: orchestrator, input: 2, cached_input: 0.20, output: 12, tools: true}
+    - {id: gemini-3.8-flash, role: worker, input: 0.75, cached_input: 0.075, output: 3.75, tools: true}
+
+- id: deepseek
+  name: DeepSeek API
+  vendor: DeepSeek
+  kind: payg
+  status: active
+  endpoint: both
+  base_url: https://api.deepseek.com/anthropic
+  pricing_source: https://api-docs.deepseek.com/quick_start/pricing
+  terms_source: https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html
+  trains_on_prompts: "opt-out"
+  api_access: "yes"
+  region_notes: Data is stored in the People's Republic of China.
+  fees: >-
+    Prices shown are peak prices (01:00–04:00 and 06:00–10:00 UTC, Monday to Friday). Off-peak is half price
+    (Flash: $0.15 input, $0.003 cached, $0.60 output).
+  last_verified: 2026-11-20
+  notes: >-
+    The privacy policy says inputs may be used for training; opt out by emailing privacy@deepseek.com.
+    The OpenAI-compatible endpoint is the same host without /anthropic. Good worker value, but never for private code.
+  models:
+    - {id: deepseek-flash, role: worker, input: 0.30, cached_input: 0.006, output: 1.20, context: 1000000, tools: true}
+    - {id: deepseek-v4-pro, role: worker, input: 1.32, cached_input: 0.044, output: 3.96, context: 1000000, tools: true}
+
+- id: zai
+  name: Z.ai API
+  vendor: Zhipu AI (Z.ai)
+  kind: payg
+  status: active
+  endpoint: both
+  base_url: https://api.z.ai/api/anthropic
+  pricing_source: https://docs.z.ai/guides/overview/pricing
+  terms_source: https://docs.z.ai/legal-agreement/privacy-policy
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  region_notes: Singapore.
+  last_verified: 2026-11-20
+  models:
+    - {id: glm-5.3, role: worker, input: 1.4, cached_input: 0.26, output: 4.4, context: 1000000, tools: true}
+    - {id: glm-5.3-flash, role: worker, input: 0.15, cached_input: 0.03, output: 0.50, tools: true}
+
+- id: moonshot
+  name: Moonshot (Kimi) API
+  vendor: Moonshot AI
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.moonshot.ai/v1
+  pricing_source: https://platform.kimi.ai/docs/pricing/chat
+  terms_source: https://www.kimi.ai/help/kimi-api/api-data-security
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  models:
+    - {id: kimi-k3.1-pro, role: worker, input: 2, cached_input: 0.20, output: 10, context: 1048576, tools: true}
+    - {id: kimi-k3, role: worker, input: 3, cached_input: 0.30, output: 15, tools: true}
+
+- id: minimax
+  name: MiniMax API
+  vendor: MiniMax
+  kind: payg
+  status: active
+  endpoint: anthropic
+  base_url: https://api.minimax.io/anthropic
+  pricing_source: https://platform.minimax.io/docs/guides/pricing-paygo
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: MiniMax-M3's price is for inputs up to 512K tokens. No official training policy page found.
+  models:
+    - {id: MiniMax-M3, role: worker, input: 0.30, cached_input: 0.06, output: 1.20, context: 1000000, tools: true}
+    - {id: MiniMax-M3.1-Flash, role: worker, input: 0.15, cached_input: 0.015, output: 0.60, tools: true}
+
+- id: alibaba-model-studio
+  name: Alibaba Cloud Model Studio
+  vendor: Alibaba Cloud
+  kind: payg
+  status: active
+  endpoint: anthropic
+  pricing_source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  terms_source: https://www.alibabacloud.com/help/en/model-studio/data-retention-policy
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: >-
+    The no-training clause applies only with zero data retention (ZDR); otherwise data is kept 30 days.
+    qwen3-coder-flash's price is the up-to-32K-input tier.
+  models:
+    - {id: qwen4-max, role: worker, input: 1.5, cached_input: 0.075, output: 4.5}
+    - {id: qwen3.8-flash, role: worker, input: 0.15, output: 0.47}
+    - {id: qwen3-coder-flash, role: worker, input: 0.3, output: 1.5}
+
+- id: groq-paid
+  name: Groq (paid)
+  vendor: Groq
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.groq.com/openai/v1
+  pricing_source: https://console.groq.com/docs/models
+  terms_source: https://console.groq.com/docs/your-data
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: No data retention by default; the page doesn't state a training policy.
+  models:
+    - {id: openai/gpt-oss-120b, role: worker, input: 0.15, output: 0.60, context: 131072, tools: true}
+    - {id: openai/gpt-oss-20b, role: worker, input: 0.075, output: 0.30, context: 131072, tools: true}
+
+- id: openrouter-paid
+  name: OpenRouter (paid)
+  vendor: OpenRouter
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://openrouter.ai/api/v1
+  pricing_source: https://openrouter.ai/pricing
+  terms_source: https://openrouter.ai/docs/guides/privacy/data-collection
+  trains_on_prompts: "opt-out"
+  api_access: "yes"
+  fees: >-
+    5.5% fee on credit purchases (8% on Business). Bring your own provider key (BYOK): no fee up to $25k a month
+    of list-price inference, 5% after.
+  last_verified: 2026-11-20
+  notes: >-
+    Model prices pass through from the upstream provider. data_collection defaults to "allow"; set it to "deny"
+    and require zero data retention (zdr: true) in the request's provider settings to keep prompts out of training.
+  models:
+    - {id: openai/gpt-oss-120b, role: worker, input: 0.09, output: 0.36, tools: true}
+    - {id: deepseek/deepseek-v4.1-flash, role: worker, input: 0.30, cached_input: 0.006, output: 1.20, tools: true}
+    - {id: minimax/minimax-m3, role: worker, input: 0.30, cached_input: 0.06, output: 1.20, tools: true}
+    - {id: qwen/qwen3-coder, role: worker, input: 0.30, cached_input: 0.10, output: 1.0, tools: true}
+
+- id: fireworks
+  name: Fireworks AI
+  vendor: Fireworks AI
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.fireworks.ai/inference/v1
+  pricing_source: https://fireworks.ai/pricing
+  terms_source: https://docs.fireworks.ai/guides/security_compliance/data_handling
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: No prompt logging unless you opt in; training isn't stated.
+  models:
+    - {id: deepseek-v4.1-flash, role: worker, input: 0.30, cached_input: 0.006, output: 1.20}
+    - {id: glm-5.3, role: worker, input: 1.4, cached_input: 0.26, output: 4.4}
+    - {id: minimax-m3, role: worker, input: 0.30, cached_input: 0.06, output: 1.20}
+    - {id: gpt-oss-120b, role: worker, input: 0.15, cached_input: 0.015, output: 0.60}
+
+- id: together
+  name: Together AI
+  vendor: Together AI
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.together.xyz/v1
+  pricing_source: https://www.together.ai/pricing
+  terms_source: https://docs.together.ai/docs/privacy-and-security
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: Training is opt-in only, but prompts are stored by default; turn storage off in the account settings.
+  models:
+    - {id: deepseek-v4.1-flash, role: worker, input: 0.30, cached_input: 0.006, output: 1.20}
+    - {id: glm-5.3, role: worker, input: 1.40, cached_input: 0.26, output: 4.40}
+    - {id: qwen3.7-plus, role: worker, input: 0.32, output: 1.28}
+    - {id: gpt-oss-120b, role: worker, input: 0.15, output: 0.60}
+
+- id: deepinfra
+  name: DeepInfra
+  vendor: DeepInfra
+  kind: payg
+  status: active
+  endpoint: openai
+  base_url: https://api.deepinfra.com/v1/openai
+  pricing_source: https://deepinfra.com/pricing
+  terms_source: https://docs.deepinfra.com/account/data-privacy
+  trains_on_prompts: "no"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: >-
+    No training, except on the Google and Anthropic models it resells. The DeepSeek and GLM prices are
+    temporary discounts (30% and 38% off).
+  models:
+    - {id: deepseek-v4.1-flash, role: worker, input: 0.14, cached_input: 0.0042, output: 0.42}
+    - {id: qwen3.8-flash, role: worker, input: 0.113, cached_input: 0.0141, output: 0.382}
+    - {id: glm-5.3, role: worker, input: 0.5625, cached_input: 0.125, output: 2.50}
+
+# ───────────────────────────── Subscriptions ─────────────────────────────
+
+- id: claude
+  name: Claude (Pro / Max / Ultra)
+  vendor: Anthropic
+  kind: subscription
+  status: active
+  pricing_source: https://claude.com/pricing
+  terms_source: https://code.claude.com/docs/en/legal-and-compliance
+  trains_on_prompts: "opt-out"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: >-
+    Routing subscription credentials through third-party tools or gateways is not allowed; a gateway needs an
+    Anthropic Console API key. Consumer plans train on chats by default: with training on, data is kept 5 years;
+    with it off, 30 days. Turn it off in Settings → Privacy.
+  tiers:
+    - {name: Free, usd_month: 0, models: "Sonnet, Haiku", limits: "Daily message limit; no Claude Code", tools: [Claude apps]}
+    - {name: Pro, usd_month: 20, models: "Opus, Sonnet, Haiku", limits: "5-hour and weekly limits", tools: [Claude apps, Claude Code, Claude in Chrome]}
+    - {name: Max 5x, usd_month: 100, models: "Fable, Opus, Sonnet, Haiku", limits: "5x Pro; Fable up to half the weekly limit", tools: [Claude apps, Claude Code, Claude in Chrome]}
+    - {name: Ultra (was Max 20x), usd_month: 200, models: "Fable, Opus, Sonnet, Haiku", limits: "10x Pro weekly; no 5-hour limit", tools: [Claude apps, Claude Code, Claude in Chrome]}
+    - {name: Team Standard, usd_month: 25, models: "Opus, Sonnet, Haiku", limits: "Per seat; team admin and no training by default", tools: [Claude apps, Claude Code]}
+    - {name: Team Premium, usd_month: 125, models: "Fable, Opus, Sonnet, Haiku", limits: "Per seat; higher limits", tools: [Claude apps, Claude Code]}
+
+- id: chatgpt
+  name: ChatGPT (Plus / Pro)
+  vendor: OpenAI
+  kind: subscription
+  status: active
+  pricing_source: https://learn.chatgpt.com/docs/pricing
+  trains_on_prompts: "opt-out"
+  api_access: "limited"
+  last_verified: 2026-11-20
+  notes: >-
+    "Sign in with ChatGPT" works in OpenAI's own Codex and in listed partner apps (Amp, Warp, Kilo Code,
+    OpenCode). The terms don't cover generic routers, so don't put a ChatGPT login behind one.
+    Training is on by default for consumer plans; turn off "Improve the model for everyone".
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited messages", tools: [ChatGPT apps, Codex]}
+    - {name: Go, usd_month: 8, limits: "More messages than Free", tools: [ChatGPT apps, Codex]}
+    - {name: Plus, usd_month: 20, models: "GPT-6.2 Sol and others", limits: "Per-5-hour message ranges (e.g. GPT-6.2 Sol 17–180)", tools: [ChatGPT apps, Codex, partner apps]}
+    - {name: Pro, usd_month: 100, limits: "No 5-hour limit; also $200 and $500 levels", tools: [ChatGPT apps, Codex, partner apps]}
+    - {name: Business, usd_month: 25, limits: "Per seat, billed monthly; no training", tools: [ChatGPT apps, Codex]}
+
+- id: google-ai
+  name: Google AI (Plus / Pro / Ultra)
+  vendor: Google
+  kind: subscription
+  status: active
+  pricing_source: https://gemini.google/in/subscriptions/
+  terms_source: https://geminicli.com/docs/resources/tos-privacy/
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: >-
+    India prices from the Google page above; Ultra USD prices from Google's announcement
+    (blog.google, Google AI subscriptions). Antigravity quotas refresh every 5 hours, with weekly caps.
+    Gemini CLI terms forbid using its OAuth login from third-party tools.
+  tiers:
+    - {name: Plus, inr_month: 399, limits: "Higher Gemini app limits", tools: [Gemini app]}
+    - {name: Pro, inr_month: 1950, limits: "Higher Antigravity and Gemini CLI quotas", tools: [Gemini app, Antigravity, Gemini CLI]}
+    - {name: Ultra 5x, usd_month: 100, inr_month: 6500, limits: "5x Pro", tools: [Gemini app, Antigravity, Gemini CLI]}
+    - {name: Ultra 20x, usd_month: 200, inr_month: 19500, limits: "20x Pro", tools: [Gemini app, Antigravity, Gemini CLI]}
+
+- id: copilot
+  name: GitHub Copilot
+  vendor: GitHub (Microsoft)
+  kind: subscription
+  status: active
+  pricing_source: https://docs.github.com/en/copilot/get-started/plans
+  terms_source: https://github.blog/news-insights/company-news/updates-to-github-copilot-interaction-data-usage-policy/
+  trains_on_prompts: "opt-out"
+  api_access: "unknown"
+  last_verified: 2026-11-20
+  notes: >-
+    Usage is token-metered in AI credits since 2026-06-01 (1 credit = $0.01). Free, Pro and Pro+ interaction
+    data is used for training unless you opt out; Business is not.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "2,000 completions; limited chat", tools: [VS Code, JetBrains, Copilot CLI]}
+    - {name: Pro, usd_month: 10, limits: "1,500 AI credits", tools: [VS Code, JetBrains, Copilot CLI, github.com]}
+    - {name: Pro+, usd_month: 39, limits: "7,000 AI credits", tools: [VS Code, JetBrains, Copilot CLI, github.com]}
+    - {name: Max, usd_month: 100, limits: "20,000 AI credits (listed in the docs only)", tools: [VS Code, JetBrains, Copilot CLI, github.com]}
+    - {name: Business, usd_month: 19, limits: "Per user", tools: [VS Code, JetBrains, Copilot CLI, github.com]}
+
+- id: alibaba-coding-plan
+  name: Alibaba Cloud Coding Plan
+  vendor: Alibaba Cloud
+  kind: subscription
+  status: active
+  pricing_source: https://www.alibabacloud.com/help/en/model-studio/coding-plan
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  last_verified: 2026-11-20
+  notes: For interactive use in coding tools only, not for scripts or apps.
+  tiers:
+    - {name: Pro, usd_month: 50, models: Qwen coder models, limits: "6,000 requests / 5 h, 45,000 / week, 90,000 / month", tools: [Claude Code, Qwen Code, other coding tools]}
+
+- id: alibaba-token-plan
+  name: Alibaba Cloud Token Plan
+  vendor: Alibaba Cloud
+  kind: subscription
+  status: active
+  pricing_source: https://www.alibabacloud.com/help/en/model-studio/token-plan-personal-overview
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  last_verified: 2026-11-20
+  notes: Personal prices are launch prices until 2026-11-30. A Team plan ($20 / $75 / $180 per seat) states no training.
+  tiers:
+    - {name: Lite, usd_month: 6, limits: "20,000 credits", tools: [coding tools]}
+    - {name: Essential, usd_month: 10, limits: "45,000 credits", tools: [coding tools]}
+    - {name: Standard, usd_month: 18, limits: "80,000 credits", tools: [coding tools]}
+    - {name: Pro, usd_month: 43, limits: "200,000 credits", tools: [coding tools]}
+
+- id: zai-coding-plan
+  name: Z.ai GLM Coding Plan
+  vendor: Zhipu AI (Z.ai)
+  kind: subscription
+  status: active
+  pricing_source: https://docs.z.ai/devpack/transition
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  last_verified: 2026-11-20
+  notes: Works only in the supported coding tools.
+  tiers:
+    - {name: Lite, usd_month: 18, models: GLM, limits: "2,000 credits / 5 h, 10,000 / week", tools: [Claude Code, opencode, Cline, Kilo Code]}
+    - {name: Pro, usd_month: 72, models: GLM, limits: "12,000 credits / 5 h, 60,000 / week", tools: [Claude Code, opencode, Cline, Kilo Code]}
+    - {name: Max, usd_month: 160, models: GLM, limits: "28,000 credits / 5 h, 140,000 / week", tools: [Claude Code, opencode, Cline, Kilo Code]}
+
+- id: kimi-membership
+  name: Kimi membership
+  vendor: Moonshot AI
+  kind: subscription
+  status: active
+  pricing_source: https://www.kimi.com/help/membership/membership-pricing
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  last_verified: 2026-11-20
+  notes: Priced in Chinese yuan only; no USD price is published.
+  tiers:
+    - {name: Plus, limits: "¥99 / month", tools: [Kimi apps, Kimi Code]}
+    - {name: Pro, limits: "¥199 / month", tools: [Kimi apps, Kimi Code]}
+    - {name: Max, limits: "¥699 / month", tools: [Kimi apps, Kimi Code]}
+    - {name: Ultra, limits: "¥1,399 / month", tools: [Kimi apps, Kimi Code]}
+
+- id: minimax-m-plan
+  name: MiniMax M Plan
+  vendor: MiniMax
+  kind: subscription
+  status: active
+  pricing_source: https://platform.minimax.io/docs/m-plan/monthly-offer
+  trains_on_prompts: "unknown"
+  api_access: "yes"
+  last_verified: 2026-11-20
+  notes: Usable from any OpenAI- or Anthropic-compatible tool.
+  tiers:
+    - {name: Go, usd_month: 22, models: MiniMax M3, limits: "Base quota", tools: [any compatible tool]}
+    - {name: Explore, usd_month: 55, models: MiniMax M3, limits: "3x Go", tools: [any compatible tool]}
+    - {name: Build, usd_month: 132, models: MiniMax M3, limits: "7.5x Go", tools: [any compatible tool]}
+
+- id: cursor
+  name: Cursor
+  vendor: Anysphere
+  kind: subscription
+  status: active
+  pricing_source: https://cursor.com/pricing
+  trains_on_prompts: "unknown"
+  api_access: "unknown"
+  last_verified: 2026-11-20
+  notes: >-
+    The terms say no training without consent, but the pricing page doesn't say whether Privacy Mode is on by
+    default. Check Settings → Privacy Mode before using it on private code.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited usage", tools: [Cursor]}
+    - {name: Plus, usd_month: 8, models: Grok only, limits: "Usage pool resets weekly", tools: [Cursor]}
+    - {name: Premium, usd_month: 30, limits: "Usage pool resets weekly", tools: [Cursor, Cursor CLI]}
+    - {name: Super, usd_month: 100, limits: "Larger weekly pool", tools: [Cursor, Cursor CLI]}
+    - {name: Ultra, usd_month: 200, limits: "Largest weekly pool", tools: [Cursor, Cursor CLI]}
+
+# ───────────────────────────── Coding tools ─────────────────────────────
+
+- id: opencode
+  name: OpenCode Zen / Go
+  vendor: opencode (SST)
+  kind: harness
+  status: active
+  pricing_source: https://opencode.ai/go
+  docs_url: https://opencode.ai/docs/zen/
+  trains_on_prompts: "no"
+  api_access: "limited"
+  byok: yes (opencode itself is open source and takes any provider key)
+  last_verified: 2026-11-20
+  notes: >-
+    Go blocks paid endpoints that train on prompts. Some free Zen models do train: check the model list before
+    using one. Go also has an API endpoint for other tools; see the Zen docs.
+  tiers:
+    - {name: Zen pay-as-you-go, limits: "Pay per token; 4.6% + $0.31 fee on top-ups", tools: [opencode]}
+    - {name: Go, usd_month: 10, limits: "5-hour limit = 20% of the month, weekly = 50%", tools: [opencode]}
+    - {name: Go Plus, usd_month: 40, limits: "Same windows, larger monthly allowance", tools: [opencode]}
+    - {name: Go Teams, usd_month: 20, limits: "Per member", tools: [opencode]}
+
+- id: cline
+  name: Cline
+  vendor: Cline Bot
+  kind: harness
+  status: active
+  pricing_source: https://cline.bot/pricing
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  byok: yes (the open-source extension and CLI are BYOK)
+  last_verified: 2026-11-20
+  tiers:
+    - {name: Open source, usd_month: 0, limits: "BYOK; you pay your provider", tools: [VS Code, JetBrains, Cline CLI]}
+    - {name: ClinePass, usd_month: 9.99, limits: "2–5x usage; 5-hour, weekly and monthly windows", tools: [VS Code, JetBrains, Cline CLI]}
+    - {name: Enterprise, limits: "Contact sales", tools: [VS Code, JetBrains, Cline CLI]}
+
+- id: kilo
+  name: Kilo Code
+  vendor: Kilo Code
+  kind: harness
+  status: active
+  pricing_source: https://kilo.ai/pricing
+  trains_on_prompts: "unknown"
+  api_access: "limited"
+  byok: "yes"
+  last_verified: 2026-11-20
+  notes: The Kilo gateway charges provider list price with no markup, plus a 5% fee.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "BYOK or pay-as-you-go credits", tools: [VS Code, JetBrains, Kilo CLI]}
+    - {name: Kilo Pass Starter, usd_month: 19, limits: "Up to $26.60 of credits", tools: [VS Code, JetBrains, Kilo CLI]}
+    - {name: Kilo Pass Pro, usd_month: 49, limits: "Up to $68.60 of credits", tools: [VS Code, JetBrains, Kilo CLI]}
+    - {name: Kilo Pass Expert, usd_month: 199, limits: "Up to $278.60 of credits", tools: [VS Code, JetBrains, Kilo CLI]}
+    - {name: Teams, usd_month: 15, limits: "Per user", tools: [VS Code, JetBrains, Kilo CLI]}
+
+- id: command-code
+  name: Command Code
+  vendor: Command Code
+  kind: harness
+  status: active
+  pricing_source: https://commandcode.ai/pricing
+  terms_source: https://commandcode.ai/privacy
+  docs_url: https://commandcode.ai/docs/byok
+  trains_on_prompts: "opt-out"
+  api_access: "yes"
+  byok: yes (beta)
+  last_verified: 2026-11-20
+  notes: >-
+    Every plan except Go includes API access. Sessions on free models may be used for training; set
+    CMD_ZDR=1 to enforce zero data retention. GOAT is the best value: $10 for up to $100 of usage.
+  tiers:
+    - {name: Go, usd_month: 1, limits: "$10 of credits; no API", tools: [Command Code CLI]}
+    - {name: GOAT, usd_month: 10, limits: "Up to $100 of usage (~75K requests); 5-hour and weekly windows", tools: [Command Code CLI, API]}
+    - {name: Pro, usd_month: 20, limits: "Up to $110 of usage", tools: [Command Code CLI, API]}
+    - {name: Max 10x, usd_month: 100, limits: "Up to $150 of usage", tools: [Command Code CLI, API]}
+    - {name: Max 20x, usd_month: 200, limits: "Up to $300 of usage", tools: [Command Code CLI, API]}
+    - {name: Teams, usd_month: 40, limits: "Per seat", tools: [Command Code CLI, API]}
+    - {name: Provider, usd_month: 15, limits: "Pay-as-you-go", tools: [Command Code CLI, API]}
+
+- id: devin-desktop
+  name: Devin Desktop (formerly Windsurf)
+  vendor: Cognition
+  kind: harness
+  status: active
+  pricing_source: https://devin.ai/pricing
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  last_verified: 2026-11-20
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited usage", tools: [Devin Desktop]}
+    - {name: Pro, usd_month: 20, limits: "not stated", tools: [Devin Desktop]}
+    - {name: Max, usd_month: 200, limits: "not stated", tools: [Devin Desktop]}
+    - {name: Teams, usd_month: 80, limits: "$80 base + $40 per seat", tools: [Devin Desktop]}
+
+- id: augment
+  name: Augment Code
+  vendor: Augment
+  kind: harness
+  status: active
+  pricing_source: https://www.augmentcode.com/pricing
+  terms_source: https://www.augmentcode.com/security
+  trains_on_prompts: "no"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: Usage is billed at provider list price + 40%.
+  tiers:
+    - {name: Standard, usd_month: 20, limits: "Includes $20 of usage", tools: [VS Code, JetBrains, Auggie CLI]}
+    - {name: Business, usd_month: 100, limits: "not stated", tools: [VS Code, JetBrains, Auggie CLI]}
+
+- id: amp
+  name: Amp
+  vendor: Amp (Sourcegraph)
+  kind: harness
+  status: active
+  pricing_source: https://ampcode.com/pricing
+  terms_source: https://ampcode.com/terms
+  trains_on_prompts: "no"
+  api_access: "no"
+  byok: "yes"
+  last_verified: 2026-11-20
+  notes: No training unless you opt in.
+  tiers:
+    - {name: Hobby, usd_month: 0, limits: "Free usage", tools: [Amp CLI, VS Code]}
+    - {name: Individual, usd_month: 20, limits: "Education price $10", tools: [Amp CLI, VS Code]}
+
+- id: factory
+  name: Factory (Droid)
+  vendor: Factory
+  kind: harness
+  status: active
+  pricing_source: https://factory.com/pricing
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  byok: yes (Free plan)
+  last_verified: 2026-11-20
+  tiers:
+    - {name: Free, usd_month: 0, limits: "BYOK", tools: [Droid CLI]}
+    - {name: Pro, usd_month: 20, limits: "Base quota", tools: [Droid CLI]}
+    - {name: Plus, usd_month: 100, limits: "5x Pro", tools: [Droid CLI]}
+    - {name: Max, usd_month: 200, limits: "10x Pro", tools: [Droid CLI]}
+    - {name: Teams, usd_month: 60, limits: "$60 base + $40 per seat", tools: [Droid CLI]}
+
+- id: warp
+  name: Warp
+  vendor: Warp
+  kind: harness
+  status: unclear
+  pricing_source: https://www.warp.dev/pricing
+  trains_on_prompts: "opt-out"
+  api_access: "no"
+  byok: yes (organisations of 10 or fewer)
+  last_verified: 2026-11-20
+  notes: >-
+    Two different price sets were seen on 2026-11-20 (Build at $20 and at $18); check the page. Turn off
+    "Help Improve Warp" to keep prompts out of training.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited AI credits", tools: [Warp]}
+    - {name: Build, usd_month: 20, limits: "Some listings show $18", tools: [Warp]}
+    - {name: Max, usd_month: 200, limits: "not stated", tools: [Warp]}
+    - {name: Business, usd_month: 50, limits: "Per user", tools: [Warp]}
+
+- id: zed
+  name: Zed
+  vendor: Zed Industries
+  kind: harness
+  status: active
+  pricing_source: https://zed.dev/pricing
+  terms_source: https://zed.dev/docs/ai/privacy-and-security
+  trains_on_prompts: "no"
+  api_access: "no"
+  byok: "yes"
+  last_verified: 2026-11-20
+  notes: Overage is billed at provider list price + 10%.
+  tiers:
+    - {name: Personal, usd_month: 0, limits: "BYOK", tools: [Zed]}
+    - {name: Pro, usd_month: 10, limits: "Includes $5 of tokens", tools: [Zed]}
+    - {name: Business, usd_month: 30, limits: "Per seat", tools: [Zed]}
+
+- id: jetbrains-ai
+  name: JetBrains AI
+  vendor: JetBrains
+  kind: harness
+  status: unclear
+  pricing_source: https://www.jetbrains.com/help/ai-assistant/licensing-and-subscriptions.html
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  byok: yes (through ACP agents)
+  last_verified: 2026-11-20
+  notes: Two different price sets were seen on 2026-11-20; the higher one is shown in the limits column. 1 credit = $1.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "3 credits", tools: [JetBrains IDEs]}
+    - {name: Pro, usd_month: 10, limits: "Some listings show $20", tools: [JetBrains IDEs, Junie]}
+    - {name: Ultimate, usd_month: 30, limits: "Some listings show $60", tools: [JetBrains IDEs, Junie]}
+
+- id: kiro
+  name: Kiro
+  vendor: Amazon Web Services
+  kind: harness
+  status: active
+  pricing_source: https://kiro.dev/pricing/
+  terms_source: https://kiro.dev/docs/privacy-and-security/data-protection/
+  trains_on_prompts: "opt-out"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: Free and individual users' content is used for training by default. Overage is $0.04 per credit.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "50 credits", tools: [Kiro IDE, Kiro CLI]}
+    - {name: Pro, usd_month: 20, limits: "1,000 credits", tools: [Kiro IDE, Kiro CLI]}
+    - {name: Pro+, usd_month: 40, limits: "not stated", tools: [Kiro IDE, Kiro CLI]}
+    - {name: Pro Max, usd_month: 100, limits: "not stated", tools: [Kiro IDE, Kiro CLI]}
+    - {name: Power, usd_month: 200, limits: "not stated", tools: [Kiro IDE, Kiro CLI]}
+
+- id: trae
+  name: Trae
+  vendor: ByteDance
+  kind: harness
+  status: active
+  pricing_source: https://www.trae.ai/pricing
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  last_verified: 2026-11-20
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited usage", tools: [Trae IDE]}
+    - {name: Pro, usd_month: 20, limits: "not stated", tools: [Trae IDE]}
+    - {name: Pro+, usd_month: 60, limits: "not stated", tools: [Trae IDE]}
+    - {name: Ultra, usd_month: 200, limits: "not stated", tools: [Trae IDE]}
+
+- id: qoder
+  name: Qoder
+  vendor: Alibaba
+  kind: harness
+  status: active
+  pricing_source: https://docs.qoder.com/account/pricing
+  terms_source: https://qoder.com/privacy-policy
+  trains_on_prompts: "opt-out"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: Turn off "Share & Improve" to keep prompts out of training; shared data may be kept up to 5 years.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Limited credits", tools: [Qoder IDE, Qoder CLI]}
+    - {name: Lite, usd_month: 10, limits: "1,000 credits", tools: [Qoder IDE, Qoder CLI]}
+    - {name: Pro, usd_month: 20, limits: "not stated", tools: [Qoder IDE, Qoder CLI]}
+    - {name: Pro+, usd_month: 60, limits: "not stated", tools: [Qoder IDE, Qoder CLI]}
+    - {name: Ultra, usd_month: 200, limits: "not stated", tools: [Qoder IDE, Qoder CLI]}
+
+- id: antigravity-free
+  name: Antigravity CLI (free account)
+  vendor: Google
+  kind: harness
+  status: active
+  pricing_source: https://antigravity.google/pricing
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: >-
+    Antigravity CLI replaced Gemini CLI for unpaid users on 2026-06-18. The account login can't be used from
+    third-party tools. Paid quotas come with Google AI Pro / Ultra.
+  tiers:
+    - {name: Free, usd_month: 0, limits: "Baseline weekly quota", tools: [Antigravity, Antigravity CLI]}
+
+- id: qwen-code-oauth
+  name: Qwen Code OAuth (free)
+  vendor: Alibaba
+  kind: harness
+  status: retired
+  pricing_source: https://cdn.jsdelivr.net/npm/@qwen-code/qwen-code@0.17.0/bundled/qc-helper/docs/configuration/auth.md
+  trains_on_prompts: "unknown"
+  api_access: "no"
+  last_verified: 2026-11-20
+  notes: The free OAuth tier was discontinued on 2026-04-15. Qwen Code still works with an API key or the Alibaba plans above.
+  tiers:
+    - {name: Free OAuth, usd_month: 0, limits: "Discontinued 2026-04-15", tools: [Qwen Code]}
+
+- id: roo-code
+  name: Roo Code
+  vendor: Roo Code
+  kind: harness
+  status: unclear
+  pricing_source: https://roomote.dev/
+  trains_on_prompts: "unknown"
+  api_access: "unknown"
+  last_verified: 2026-11-20
+  notes: >-
+    roocode.com now redirects to Roomote, which shows no pricing. Only third-party sources say Roo Code shut
+    down. Don't start new work on it.
+  tiers:
+    - {name: Roomote self-hosted, usd_month: 0, limits: "No pricing published", tools: [Roomote]}

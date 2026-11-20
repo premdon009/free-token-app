@@ -1,4 +1,4 @@
-"""Check every public URL in providers.yml and docs/**/*.md (stdlib only, plus pyyaml via _providers).
+"""Check every public URL in providers.yml, plans.yml and docs/**/*.md (stdlib only, plus pyyaml via _providers).
 
     uv run python scripts/check_links.py            # exit 1 if any link FAILs (404/410 or unreachable)
     uv run python scripts/check_links.py --stale    # also list providers not verified in 45 days
@@ -17,6 +17,7 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+import _plans
 from _providers import ROOT, is_stale, load, all_urls
 
 LINK_RE = re.compile(r"https://[^\s)\]>\"'`|]+")
@@ -66,8 +67,9 @@ def main() -> int:
     ap.add_argument("--stale", action="store_true")
     args = ap.parse_args()
     rows = load()
-    pairs = all_urls(rows) + doc_urls()
-    bases = {(p.get("base_url") or "").rstrip("/") for p in rows} - {""}
+    plans = _plans.load()
+    pairs = all_urls(rows) + _plans.all_urls(plans) + doc_urls()
+    bases = ({(p.get("base_url") or "").rstrip("/") for p in rows} | _plans.base_urls(plans)) - {""}
     urls: dict[str, list[str]] = {}
     for where, url in pairs:
         if any(s in url for s in SKIP) or url.rstrip("/") in bases:

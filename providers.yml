@@ -282,7 +282,7 @@
   name: LLM7.io
   kind: aggregator
   free_type: permanent
-  status: active
+  status: unclear
   card_required: false
   phone_required: false
   region_notes: ""
@@ -290,8 +290,8 @@
   base_url: https://api.llm7.io/v1
   signup_url: https://dash.llm7.io
   docs_url: https://docs.llm7.io/quickstart
-  limits_source: https://docs.llm7.io/limits
-  limits: {rpm: 60, text: "Free token: 1 RPS, 60 RPM, 250 requests/hour, 100K tokens per day on turbo models. May be cut without notice."}
+  limits_source: https://docs.llm7.io/guides/models-api
+  limits: {text: "No free allowance found on 2026-11-20: the docs publish no rate limits (the old limits page is gone), and the live model catalog lists only priced, usage-based models. The four turbo models cost about $0.01–0.06 per 1M input tokens."}
   trains_on_prompts: "unknown"
   trains_source: ""
   commercial_use: "unknown"
@@ -300,8 +300,8 @@
     - {id: mistral-Nemo-Instruct-2407, context: null, tools: false, vision: false}
   router: {include: false, priority: 85, key_env: LLM7_API_KEY, lanes: [fast]}
   upstream: {mnfst: LLM7.io, mv: llm7}
-  last_verified: 2026-11-19
-  notes: "The operator doesn't name its upstream hosts and has no published training policy, so it's off in the default chain."
+  last_verified: 2026-11-20
+  notes: "LLM7 now looks like a paid API; it stays in the catalog as unclear until a free tier is confirmed. The operator doesn't name its upstream hosts and has no published training policy, so it's off in the default chain."
 
 - id: kilo
   name: Kilo Code gateway (anonymous)

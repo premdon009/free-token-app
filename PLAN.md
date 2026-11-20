@@ -148,10 +148,14 @@ coding.
   caching patterns, how to stay within free limits.
 - **P5 Automation:** a weekly workflow runs link checks, keyless endpoint probes and the upstream
   diff, and opens an issue with the changes; Renovate for the image digest and Python deps.
+- **P6 Paid plans** (added 2026-11-20): `plans.yml` (subscriptions, pay-per-token hosts, coding-tool
+  plans) → `gen_plans.py` → `docs/paid/`, never the router; a hand-written `choosing-a-plan.md`
+  with cost scenarios; `docs/agents/orchestration.md` (strong model plans and reviews, cheap
+  models work; design only); optional add-ons in `docs/addons/`; Pi and Goose agent pages.
 
 ## Verification ("done" for every phase)
 - `uv run mkdocs build --strict` passes
-- `uv run python scripts/gen_catalog.py --check` and `gen_router.py --check` (generated files current)
+- `uv run python scripts/gen_catalog.py --check`, `gen_router.py --check` and `gen_plans.py --check` (generated files current)
 - `uv run python scripts/check_links.py`: 0 FAIL
 - `uv lock --check`
 - From P2: `docker compose -f router/compose.yaml up -d`, then `probe_keys.py` reports each key,
