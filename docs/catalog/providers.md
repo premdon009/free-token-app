@@ -183,13 +183,16 @@ A hosted third-party gateway, so it stays out of the router (usage rule 3). Fine
 
 ## LLM7.io {#llm7}
 
+!!! warning "Status: unclear"
+    No free allowance found on 2026-11-20: the docs publish no rate limits (the old limits page is gone), and the live model catalog lists only priced, usage-based models. The four turbo models cost about $0.01–0.06 per 1M input tokens.
+
 | | |
 |---|---|
 | Free type | Permanent free tier |
 | Kind | aggregator |
 | Card / phone needed | no / no |
-| Limits | 60 RPM. Free token: 1 RPS, 60 RPM, 250 requests/hour, 100K tokens per day on turbo models. May be cut without notice. |
-| Limits source | [https://docs.llm7.io/limits](https://docs.llm7.io/limits) |
+| Limits | see notes. No free allowance found on 2026-11-20: the docs publish no rate limits (the old limits page is gone), and the live model catalog lists only priced, usage-based models. The four turbo models cost about $0.01–0.06 per 1M input tokens. |
+| Limits source | [https://docs.llm7.io/guides/models-api](https://docs.llm7.io/guides/models-api) |
 | Trains on prompts | ⚪ unknown |
 | Commercial use | unknown |
 | API | openai-compatible · `https://api.llm7.io/v1` |
@@ -197,14 +200,14 @@ A hosted third-party gateway, so it stays out of the router (usage rule 3). Fine
 | Docs | [https://docs.llm7.io/quickstart](https://docs.llm7.io/quickstart) |
 | Router | not in the default chain |
 | Region | — |
-| Verified | 2026-11-19 |
+| Verified | 2026-11-20 |
 
 | Model id | Context | Tools | Vision | Router lanes |
 |---|---|---|---|---|
 | `codestral-latest` | — | no | no | — |
 | `mistral-Nemo-Instruct-2407` | — | no | no | — |
 
-The operator doesn't name its upstream hosts and has no published training policy, so it's off in the default chain.
+LLM7 now looks like a paid API; it stays in the catalog as unclear until a free tier is confirmed. The operator doesn't name its upstream hosts and has no published training policy, so it's off in the default chain.
 
 ## Mistral (Free mode) {#mistral}
 

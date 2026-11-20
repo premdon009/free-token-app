@@ -33,8 +33,8 @@ Every free chat model. For apps, prefer a service whose commercial-use column sa
 | `qwen-3.8-27b` | [Cerebras Inference](providers.md#cerebras) | — | yes | no | ⚪ unknown | 5 RPM |
 | `north-mini-code-1-0` | [Cohere (trial keys)](providers.md#cohere) | — | no | no | 🔴 yes | 20 RPM |
 | `kilo-auto/free` | [Kilo Code gateway (anonymous)](providers.md#kilo) | — | no | no | ⚪ unknown | see notes |
-| `codestral-latest` | [LLM7.io](providers.md#llm7) | — | no | no | ⚪ unknown | 60 RPM |
-| `mistral-Nemo-Instruct-2407` | [LLM7.io](providers.md#llm7) | — | no | no | ⚪ unknown | 60 RPM |
+| `codestral-latest` | [LLM7.io](providers.md#llm7) | — | no | no | ⚪ unknown | see notes |
+| `mistral-Nemo-Instruct-2407` | [LLM7.io](providers.md#llm7) | — | no | no | ⚪ unknown | see notes |
 | `mistral-large-latest` | [Mistral (Free mode)](providers.md#mistral) | — | yes | no | 🟠 opt-out | see notes |
 | `mistral-medium-latest` | [Mistral (Free mode)](providers.md#mistral) | — | yes | no | 🟠 opt-out | see notes |
 | `cohere/north-mini-code:free` | [OpenRouter (:free models)](providers.md#openrouter) | — | no | no | 🟠 opt-out | 20 RPM, 50 RPD |

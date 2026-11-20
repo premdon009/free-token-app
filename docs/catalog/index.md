@@ -2,7 +2,7 @@
 
 # Catalog
 
-20 services, newest check **2026-11-19**. A row older than 45 days than the newest check is marked ⏰ stale. Limits change often: the **Source** link is the provider's own page, so check it before you rely on a number.
+20 services, newest check **2026-11-20**. A row older than 45 days than the newest check is marked ⏰ stale. Limits change often: the **Source** link is the provider's own page, so check it before you rely on a number.
 
 Trains on prompts: 🟢 no · 🟠 opt-out (turn it off in settings) · 🔴 yes · ⚪ unknown.
 
@@ -14,7 +14,6 @@ Trains on prompts: 🟢 no · 🟠 opt-out (turn it off in settings) · 🔴 yes
 | [Google AI Studio (Gemini API)](providers.md#gemini) | Permanent free tier | no | see notes | 🔴 yes | yes | ✅ | [link](https://ai.google.dev/gemini-api/docs/rate-limits) | 2026-11-19 |
 | [Groq](providers.md#groq) | Permanent free tier | no | 30 RPM, 1K RPD, 8K TPM, 200K TPD | 🟢 no | yes | ✅ | [link](https://console.groq.com/docs/rate-limits) | 2026-11-19 |
 | [Kilo Code gateway (anonymous)](providers.md#kilo) | Keyless (no sign-up) | no | see notes | ⚪ unknown | unknown | — | [link](https://kilo.ai/docs/gateway/authentication) | 2026-11-19 |
-| [LLM7.io](providers.md#llm7) | Permanent free tier | no | 60 RPM | ⚪ unknown | unknown | — | [link](https://docs.llm7.io/limits) | 2026-11-19 |
 | [Mistral (Free mode)](providers.md#mistral) | Permanent free tier | no | see notes | 🟠 opt-out | unknown | ✅ | [link](https://docs.mistral.ai/admin/billing-usage/usage-limits) | 2026-11-19 |
 | [NVIDIA NIM (build.nvidia.com)](providers.md#nvidia) | Permanent free tier | no | 40 RPM | 🔴 yes | no | ✅ | [link](https://docs.api.nvidia.com/nim/docs/product) | 2026-11-19 |
 | [OpenRouter (:free models)](providers.md#openrouter) | Permanent free tier | no | 20 RPM, 50 RPD | 🟠 opt-out | yes | ✅ | [link](https://openrouter.ai/docs/api_reference/limits) | 2026-11-19 |
@@ -25,6 +24,7 @@ Trains on prompts: 🟢 no · 🟠 opt-out (turn it off in settings) · 🔴 yes
 | [llama.cpp server (local)](providers.md#llama-cpp) | Local (your machine) | no | see notes | 🟢 no | yes | — | [link](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) | 2026-11-19 |
 | [LM Studio (local)](providers.md#lm-studio) | Local (your machine) | no | see notes | 🟢 no | yes | — | [link](https://lmstudio.ai/docs) | 2026-11-19 |
 | [Ollama (local)](providers.md#ollama) | Local (your machine) | no | see notes | 🟢 no | yes | ✅ | [link](https://docs.ollama.com) | 2026-11-19 |
+| [LLM7.io](providers.md#llm7) ⚠️ unclear | Permanent free tier | no | see notes | ⚪ unknown | unknown | — | [link](https://docs.llm7.io/guides/models-api) | 2026-11-20 |
 | [Ollama Cloud](providers.md#ollama-cloud) ⚠️ unclear | Renewing credit | no | see notes | 🟢 no | unknown | — | [link](https://ollama.com/pricing) | 2026-11-19 |
 | [Pollinations.AI (legacy text API)](providers.md#pollinations) ⚠️ unclear | Keyless (no sign-up) | no | see notes | ⚪ unknown | unknown | — | [link](https://text.pollinations.ai/models) | 2026-11-19 |
 | [Hugging Face Inference Providers](providers.md#huggingface) ❌ retired | Renewing credit | no | see notes | ⚪ unknown | unknown | — | [link](https://huggingface.co/docs/inference-providers/pricing) | 2026-11-19 |

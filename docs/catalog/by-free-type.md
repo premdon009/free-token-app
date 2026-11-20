@@ -7,7 +7,7 @@
 - [Cohere (trial keys)](providers.md#cohere): 20 RPM. Trial keys: 1,000 API calls per month, 20 RPM for chat. Trial keys are for evaluation, not production or commercial use.
 - [Google AI Studio (Gemini API)](providers.md#gemini): see notes. Per project and per model. Google publishes which models are free on the pricing page; exact RPM/RPD show inside AI Studio after sign-in.
 - [Groq](providers.md#groq): 30 RPM, 1K RPD, 8K TPM, 200K TPD. Per model, shared by all keys in one organization. 429 responses carry retry-after.
-- [LLM7.io](providers.md#llm7): 60 RPM. Free token: 1 RPS, 60 RPM, 250 requests/hour, 100K tokens per day on turbo models. May be cut without notice.
+- [LLM7.io](providers.md#llm7) ⚠️ unclear: see notes. No free allowance found on 2026-11-20: the docs publish no rate limits (the old limits page is gone), and the live model catalog lists only priced, usage-based models. The four turbo models cost about $0.01–0.06 per 1M input tokens.
 - [Mistral (Free mode)](providers.md#mistral): see notes. Monthly allowance shared across Studio, API and Vibe CLI; the Free-mode amount is not published. Per-model RPS/TPM shown in the console.
 - [NVIDIA NIM (build.nvidia.com)](providers.md#nvidia): 40 RPM. About 40 RPM per account on models marked Free Endpoint; ceilings vary by model and load.
 - [OpenRouter (:free models)](providers.md#openrouter): 20 RPM, 50 RPD. 20 RPM; 50 free-model requests per UTC day, or 1000 per day once 10 credits have been bought (all-time).
